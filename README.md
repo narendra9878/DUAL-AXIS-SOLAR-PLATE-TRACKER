@@ -102,7 +102,7 @@ const char* writeAPIKey = "YOUR_WRITE_API_KEY";
 
 ## 🤝 Contributors
 
-* Your Name / Company Name
+* Pittu Narendra Reddy / Surya Tech Solutions
 
 ---
 
