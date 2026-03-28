@@ -14,14 +14,14 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 // ================= WIFI =================
-const char* ssid = "YOUR_WIFI_NAME";
-const char* password = "YOUR_WIFI_PASSWORD";
+const char* ssid = "Name";
+const char* password = "Password";
 
 WiFiClient client;
 
 // ================= THINGSPEAK =================
-unsigned long channelNumber = YOUR_CHANNEL_ID;
-const char* writeAPIKey = "YOUR_WRITE_API_KEY";
+unsigned long channelNumber = 3310713;
+const char* writeAPIKey = "H0K6TCH7ZE9R1UVG";
 
 // ================= LDR PINS =================
 #define LDR1 34
@@ -30,39 +30,51 @@ const char* writeAPIKey = "YOUR_WRITE_API_KEY";
 #define LDR4 33
 
 // ================= MOTOR DRIVER PINS =================
-// Motor X (Horizontal)
-#define IN1 18
-#define IN2 19
+#define IN1 25 
+#define IN2 26 
+#define IN3 27 
+#define IN4 14 
 
-// Motor Y (Vertical)
-#define IN3 21
-#define IN4 22
+// ================= LIMIT SWITCHES =================
+#define LIMIT_LEFT   18
+#define LIMIT_RIGHT  19
+#define LIMIT_UP     21
+#define LIMIT_DOWN   22
 
-int threshold = 50;
+// ================= SINGLE THRESHOLD =================
+int threshold = 120;
 
 // ================= TIMER =================
 unsigned long lastThingSpeak = 0;
 unsigned long interval = 15000;
 
+// ================= LDR SMOOTH FUNCTION =================
+int readLDR(int pin) {
+  int sum = 0;
+  for (int i = 0; i < 5; i++) {
+    sum += analogRead(pin);
+    delay(5);
+  }
+  return sum / 5;
+}
+
 // ================= SETUP =================
 void setup() {
   Serial.begin(115200);
-
   dht.begin();
 
-  // Motor pins
-  pinMode(IN1, OUTPUT);
+  pinMode(IN1, OUTPUT); 
   pinMode(IN2, OUTPUT);
   pinMode(IN3, OUTPUT);
   pinMode(IN4, OUTPUT);
 
-  // Stop motors initially
-  digitalWrite(IN1, LOW);
-  digitalWrite(IN2, LOW);
-  digitalWrite(IN3, LOW);
-  digitalWrite(IN4, LOW);
+  pinMode(LIMIT_LEFT, INPUT_PULLUP);
+  pinMode(LIMIT_RIGHT, INPUT_PULLUP);
+  pinMode(LIMIT_UP, INPUT_PULLUP);
+  pinMode(LIMIT_DOWN, INPUT_PULLUP);
 
-  // WiFi
+  stopAllMotors();
+
   WiFi.begin(ssid, password);
   Serial.print("Connecting to WiFi");
 
@@ -76,54 +88,89 @@ void setup() {
   ThingSpeak.begin(client);
 }
 
+// ================= MOTOR FUNCTIONS =================
+void stopX() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+}
+
+void stopY() {
+  digitalWrite(IN3, LOW);  
+  digitalWrite(IN4, LOW);
+}
+
+void stopAllMotors() {
+  stopX();
+  stopY();
+}
+
 // ================= LOOP =================
 void loop() {
 
-  // ----------- LDR READINGS -----------
-  int ldr1 = analogRead(LDR1);
-  int ldr2 = analogRead(LDR2);
-  int ldr3 = analogRead(LDR3);
-  int ldr4 = analogRead(LDR4);
+  // ----------- LDR READINGS (NOW SMOOTHED) -----------
+  int ldr1 = readLDR(LDR1);
+  int ldr2 = readLDR(LDR2);
+  int ldr3 = readLDR(LDR3);
+  int ldr4 = readLDR(LDR4);
 
   int top = (ldr1 + ldr2) / 2;
   int bottom = (ldr3 + ldr4) / 2;
   int left = (ldr1 + ldr3) / 2;
   int right = (ldr2 + ldr4) / 2;
 
-  // ----------- X AXIS MOTOR -----------
-  if (abs(left - right) > threshold) {
-    if (left > right) {
-      // rotate left
-      digitalWrite(IN1, HIGH);
-      digitalWrite(IN2, LOW);
-    } else {
-      // rotate right
-      digitalWrite(IN1, LOW);
-      digitalWrite(IN2, HIGH);
-    }
-  } else {
-    // stop motor
-    digitalWrite(IN1, LOW);
+  Serial.print("L:");
+  Serial.print(left);
+  Serial.print(" R:");
+  Serial.print(right);
+  Serial.print(" T:");
+  Serial.print(top);
+  Serial.print(" B:");
+  Serial.println(bottom);
+
+  // ----------- PRIORITY CONTROL -----------
+
+int diffX = left - right;
+int diffY = top - bottom;
+
+// 👉 PRIORITY: X AXIS FIRST
+if (abs(diffX) > threshold) {
+
+  stopY();  // 🔥 stop Y motor
+
+  if (diffX > 0 && digitalRead(LIMIT_LEFT) == HIGH) {
+    digitalWrite(IN1, HIGH);
     digitalWrite(IN2, LOW);
+  } 
+  else if (diffX < 0 && digitalRead(LIMIT_RIGHT) == HIGH) {
+    digitalWrite(IN1, LOW);
+    digitalWrite(IN2, HIGH);
+  } 
+  else {
+    stopX();
   }
 
-  // ----------- Y AXIS MOTOR -----------
-  if (abs(top - bottom) > threshold) {
-    if (top > bottom) {
-      // move up
-      digitalWrite(IN3, HIGH);
-      digitalWrite(IN4, LOW);
-    } else {
-      // move down
-      digitalWrite(IN3, LOW);
-      digitalWrite(IN4, HIGH);
-    }
-  } else {
-    // stop motor
-    digitalWrite(IN3, LOW);
+} 
+// 👉 ONLY IF X IS STABLE → MOVE Y
+else if (abs(diffY) > threshold) {
+
+  stopX();  // 🔥 stop X motor
+
+  if (diffY > 0 && digitalRead(LIMIT_UP) == HIGH) {
+    digitalWrite(IN3, HIGH);
     digitalWrite(IN4, LOW);
+  } 
+  else if (diffY < 0 && digitalRead(LIMIT_DOWN) == HIGH) {
+    digitalWrite(IN3, LOW);
+    digitalWrite(IN4, HIGH);
+  } 
+  else {
+    stopY();
   }
 
+} 
+else {
+  stopAllMotors();  // perfect alignment
+}
   // ----------- DHT + THINGSPEAK -----------
   if (millis() - lastThingSpeak > interval) {
 
@@ -132,27 +179,26 @@ void loop() {
 
     if (isnan(temp) || isnan(hum)) {
       Serial.println("DHT Error!");
-      return;
-    }
-
-    Serial.print("Temp: ");
-    Serial.print(temp);
-    Serial.print(" | Humidity: ");
-    Serial.println(hum);
-
-    ThingSpeak.setField(1, temp);
-    ThingSpeak.setField(2, hum);
-
-    int x = ThingSpeak.writeFields(channelNumber, writeAPIKey);
-
-    if (x == 200) {
-      Serial.println("Data sent to ThingSpeak");
     } else {
-      Serial.println("ThingSpeak Error");
+      Serial.print("Temp: ");
+      Serial.print(temp);
+      Serial.print(" | Humidity: "); 
+      Serial.println(hum);
+
+      ThingSpeak.setField(1, temp);
+      ThingSpeak.setField(2, hum);
+
+      int x = ThingSpeak.writeFields(channelNumber, writeAPIKey);
+
+      if (x == 200) {
+        Serial.println("Data sent");
+      } else {
+        Serial.println("ThingSpeak Error");
+      }
     }
 
     lastThingSpeak = millis();
   }
 
-  delay(200);
+  delay(20);  // smooth motion
 }
