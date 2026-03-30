@@ -1,10 +1,3 @@
-/*
- * ⚠️ IMPORTANT NOTE:
- * This code is written for the Arduino framework running on ESP32.
- * It is not standard C++ code and requires the Arduino IDE or compatible
- * environment (such as PlatformIO) with ESP32 board support installed.
- */
-
 #include <WiFi.h>
 #include <ThingSpeak.h>
 #include <DHT.h>
@@ -15,14 +8,14 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 // ================= WIFI =================
-const char* ssid = "Name";
-const char* password = "Password";
+const char* ssid = "OnePlus";
+const char* password = "88888888";
 
 WiFiClient client;
 
 // ================= THINGSPEAK =================
-unsigned long channelNumber = xxxxxxx;
-const char* writeAPIKey = "16 digit code of API";
+unsigned long channelNumber = 3316441;
+const char* writeAPIKey = "YY5KY7SU790NZ1B3";
 
 // ================= LDR PINS =================
 #define LDR1 34
@@ -131,39 +124,125 @@ void loop() {
   // ----------- PRIORITY CONTROL -----------
 
 int diffX = left - right;
-int diffY = top - bottom;
 
+int diffY = top - bottom;
 // 👉 PRIORITY: X AXIS FIRST
 if (abs(diffX) > threshold) {
 
-  stopY();  // 🔥 stop Y motor
+  stopY();  // stop Y first
 
-  if (diffX > 0 && digitalRead(LIMIT_LEFT) == HIGH) {
-    digitalWrite(IN1, HIGH);
-    digitalWrite(IN2, LOW);
+  if (diffX > 0) {   // LEFT movement
+
+    if (digitalRead(LIMIT_LEFT) == LOW) {
+      stopAllMotors();
+    }
+
+    if (digitalRead(LIMIT_DOWN) == 1 && digitalRead(LIMIT_LEFT) == HIGH) {
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+    }
+    else if (digitalRead(LIMIT_DOWN) == 0 && digitalRead(LIMIT_LEFT) == HIGH) {
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+    }
+    else if (digitalRead(LIMIT_DOWN) == 1 && digitalRead(LIMIT_LEFT) == LOW) {
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+    }
+    else {
+      stopAllMotors();
+    }
+
   } 
-  else if (diffX < 0 && digitalRead(LIMIT_RIGHT) == HIGH) {
-    digitalWrite(IN1, LOW);
-    digitalWrite(IN2, HIGH);
-  } 
+  else if (diffX < 0) {   // RIGHT movement
+
+    if (digitalRead(LIMIT_RIGHT) == LOW) {
+      stopAllMotors();
+    }
+
+    if (digitalRead(LIMIT_UP) == 1 && digitalRead(LIMIT_RIGHT) == HIGH) {
+     digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+    }
+    else if (digitalRead(LIMIT_UP) == 0 && digitalRead(LIMIT_RIGHT) == HIGH) {
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+    }
+    else if (digitalRead(LIMIT_UP) == 1 && digitalRead(LIMIT_RIGHT) == LOW) {
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+    }
+    else {
+      stopAllMotors();
+    }
+  }
   else {
     stopX();
   }
-
-} 
+}
 // 👉 ONLY IF X IS STABLE → MOVE Y
 else if (abs(diffY) > threshold) {
 
   stopX();  // 🔥 stop X motor
 
-  if (diffY > 0 && digitalRead(LIMIT_UP) == HIGH) {
-    digitalWrite(IN3, HIGH);
-    digitalWrite(IN4, LOW);
+  if (diffY > 0 ) {
+    if(digitalRead(LIMIT_UP) == LOW)
+    {
+      stopAllMotors();
+    }
+    if(digitalRead(LIMIT_LEFT)==1 && digitalRead(LIMIT_UP) == HIGH)
+    {
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+    }
+    else if(digitalRead(LIMIT_LEFT)==0 && digitalRead(LIMIT_UP) == HIGH)
+    {
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+    }
+    else if(digitalRead(LIMIT_LEFT)==0 && digitalRead(LIMIT_UP) == LOW)
+    {
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+    }
+    else
+    {
+      stopAllMotors();
+    }
   } 
-  else if (diffY < 0 && digitalRead(LIMIT_DOWN) == HIGH) {
-    digitalWrite(IN3, LOW);
-    digitalWrite(IN4, HIGH);
-  } 
+  else if (diffY < 0) {
+     if(digitalRead(LIMIT_DOWN) == LOW)
+    {
+      stopAllMotors();
+    }
+    if(digitalRead(LIMIT_LEFT)==1 && digitalRead(LIMIT_DOWN) == HIGH)
+    {
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+    }
+    else if(digitalRead(LIMIT_LEFT)==0 && digitalRead(LIMIT_DOWN) == HIGH)
+    {
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+    }
+    else if(digitalRead(LIMIT_LEFT)==0 && digitalRead(LIMIT_DOWN) == LOW)
+    {
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+    }
+    else
+    {
+      stopAllMotors();
+    } 
+  }
   else {
     stopY();
   }
@@ -203,5 +282,3 @@ else {
 
   delay(20);  // smooth motion
 }
-digitalWrite(IN1, HIGH);
-      digitalWrite(IN2, LOW);
