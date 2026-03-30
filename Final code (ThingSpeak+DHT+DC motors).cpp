@@ -4,6 +4,7 @@
  * It is not standard C++ code and requires the Arduino IDE or compatible
  * environment (such as PlatformIO) with ESP32 board support installed.
  */
+
 #include <WiFi.h>
 #include <ThingSpeak.h>
 #include <DHT.h>
@@ -202,3 +203,5 @@ else {
 
   delay(20);  // smooth motion
 }
+digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
