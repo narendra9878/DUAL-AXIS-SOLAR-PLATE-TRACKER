@@ -21,8 +21,8 @@ const char* password = "Password";
 WiFiClient client;
 
 // ================= THINGSPEAK =================
-unsigned long channelNumber = 3310713;
-const char* writeAPIKey = "H0K6TCH7ZE9R1UVG";
+unsigned long channelNumber = xxxxxxx;
+const char* writeAPIKey = "16 digit code of API";
 
 // ================= LDR PINS =================
 #define LDR1 34
