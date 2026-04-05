@@ -8,8 +8,8 @@
 DHT dht(DHTPIN, DHTTYPE);
 
 // ================= WIFI =================
-const char* ssid = "OnePlus";
-const char* password = "88888888";
+const char* ssid = "Narendra";
+const char* password = "naninani";
 
 WiFiClient client;
 
@@ -151,6 +151,7 @@ if (abs(diffX) > threshold) {
       digitalWrite(IN3, LOW);
       digitalWrite(IN4, HIGH);
     }
+    
     else {
       stopAllMotors();
     }
@@ -210,7 +211,13 @@ else if (abs(diffY) > threshold) {
     {
       digitalWrite(IN1, LOW);
       digitalWrite(IN2, HIGH);
+              
     }
+    else if(digitalRead(LIMIT_LEFT)==1 && digitalRead(LIMIT_RIGHT) == HIGH)
+      {
+        digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      }
     else
     {
       stopAllMotors();
@@ -235,9 +242,15 @@ else if (abs(diffY) > threshold) {
     }
     else if(digitalRead(LIMIT_LEFT)==0 && digitalRead(LIMIT_DOWN) == LOW)
     {
-      digitalWrite(IN1, LOW);
+     digitalWrite(IN1, LOW);
       digitalWrite(IN2, HIGH);
+      
     }
+    if(digitalRead(LIMIT_LEFT)==1 && digitalRead(LIMIT_RIGHT) == HIGH)
+      {
+        digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      }
     else
     {
       stopAllMotors();
